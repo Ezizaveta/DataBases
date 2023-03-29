@@ -18,35 +18,47 @@ where tasks.title in (
     group by executor, title, priority
     order by tasks.priority asc limit 3)
 order by firstname, priority;
----2
-select tasks.author, users.id, count(start_date) as tasks_per_months,
-    extract(MONTH from start_date) as month,
-    extract(YEAR  from start_date) as year
-from tasks, users
-where(tasks.author = users.firstname)
-group by author, start_date, users.id;
 
----3.1 TODO: через мат. операцию
+---2
+select
+ 	distinct count(title),
+	extract (month from start_date) as month,
+	extract(year from start_date) as year,
+	users.firstname
+from users, tasks
+where users.firstname = tasks.author
+group by users.firstname, year, month
+order by users.firstname;
+
+---3.1 через мат. операцию
 SELECT Id,
-       sum(case when tasks.spent_time > tasks.execution_time then tasks.spent_time - tasks.execution_time else 0 end) as "+",
-       sum(case when tasks.spent_time < tasks.execution_time then tasks.execution_time - tasks.spent_time else 0 end) as "-"
+       (sum(tasks.spent_time - tasks.execution_time) + sum(abs(tasks.spent_time - tasks.execution_time)))/2 as "+",
+       (sum(tasks.execution_time - tasks.spent_time) + sum(abs(tasks.execution_time - tasks.spent_time)))/2 as "-"
 FROM users, tasks
 WHERE(users.firstname = tasks.executor)
 GROUP BY Id;
 
 ---3.2
-SELECT Id, sum(underwork.under) as "-", sum(overwork.over) as "+"
-FROM users,
-     (SELECT (tasks.execution_time - tasks.spent_time) as under, executor
-      FROM tasks
-      WHERE tasks.execution_time > tasks.spent_time) as underwork,
 
-     (SELECT (tasks.spent_time - tasks.execution_time) as over, executor
-      FROM tasks
-      WHERE tasks.spent_time > tasks.execution_time) as overwork
---WHERE users.firstname = overwork.executor and
---   overwork.executor = underwork.executor
-GROUP BY Id;
+select users.id, underwork."-" as "-", overwork."+" as "+"
+from users,
+     (
+        select tasks.executor, (sum(tasks.spent_time - tasks.execution_time) +
+                sum(abs(tasks.spent_time - tasks.execution_time)))/2 as "+"
+        from tasks
+        group by tasks.executor
+     ) as overwork
+    join
+     (
+        select tasks.executor, (sum(tasks.execution_time - tasks.spent_time) +
+                sum(abs(tasks.execution_time - tasks.spent_time)))/2 as "-"
+        from tasks
+        group by tasks.executor
+     ) as underwork
+    on overwork.executor = underwork.executor
+where underwork.executor = users.firstname
+group by underwork."-", overwork."+", users.id;
+
 ---4
 SELECT Author, Executor FROM tasks WHERE Author > Executor
 UNION
@@ -80,8 +92,6 @@ select Executor, max(Priority) as "max", min(Priority) as "min"
 from tasks
 group by tasks.Executor
 having tasks.Executor is not NULL;
-
----select Executor, max(Priority) as "max" from tasks
 
 ---8
 select executor, sum(execution_time)
