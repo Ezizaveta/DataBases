@@ -1,36 +1,41 @@
 ---TASK2
 ---1
-select users.firstname, tasks.title, tasks.priority
+
+select distinct users.firstname, tasks.title, tasks.priority
 from users, tasks
-where tasks.title in (
+where tasks.title in
+    (
     select title
     from tasks
     where (executor = users.firstname)
     group by executor, title, priority
-    order by tasks.priority desc limit 3)
-union all
-select users.firstname, tasks.title, tasks.priority
+    order by priority desc limit 3
+    )
+union
+select distinct users.firstname, tasks.title, tasks.priority
 from users, tasks
-where tasks.title in (
+where tasks.title in
+    (
     select title
     from tasks
-    where executor = users.firstname
+    where (executor = users.firstname)
     group by executor, title, priority
-    order by tasks.priority asc limit 3)
-order by firstname, priority;
+    order by priority asc limit 3
+    )
+order by firstname;
 
 ---2
 select
- 	distinct count(title),
-	extract (month from start_date) as month,
-	extract(year from start_date) as year,
-	users.firstname
+ 	distinct
+    concat(count(title),
+	extract (month from start_date),
+	extract(year from start_date),
+	users.firstname)
 from users, tasks
 where users.firstname = tasks.author
-group by users.firstname, year, month
-order by users.firstname;
+group by users.firstname, tasks.start_date;
 
----3.1 через мат. операцию
+---3.1
 SELECT Id,
        (sum(tasks.spent_time - tasks.execution_time) + sum(abs(tasks.spent_time - tasks.execution_time)))/2 as "+",
        (sum(tasks.execution_time - tasks.spent_time) + sum(abs(tasks.execution_time - tasks.spent_time)))/2 as "-"
