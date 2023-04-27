@@ -1,4 +1,4 @@
----3.1 целостность на уровне таблиц:
+---3.1
 drop table if exists a, b;
 create table a
 (
@@ -47,7 +47,7 @@ update b
 set aid = 44
 where id = 4;
 
----3.1 целостность на уровне запросов:
+---3.1
 drop table if exists b, a;
 create table a
 (
@@ -203,3 +203,121 @@ insert into bank_client(id, bank_id, client_id) values
     (5, 2, 4),
     (6, 3, 1),
     (7, 3, 4);
+
+
+--3-3-1
+create table auditorium_participants
+(
+    id integer not null,
+    number_of_seats integer,
+    participants varchar(1000)
+);
+
+insert into auditorium_participants values
+    (1, 53, 'Пупкин Вася, Иванов Саша'),
+    (2, 10, 'Иванов Кирилл, Медведев Иван, Куролесников Петр'),
+    (3, 15, 'Кривозайцева Мария, Лешина Екатерина, Заморский Иван, Дубов Алексей, Чернов Валерий'),
+    (4, 20, 'Скоровойтов Дмитрий'),
+    (5, 30, 'Кто-то-тамов Сергей, Чья-то-тамова Александра'),
+    (6, 35, 'Сырников Михаил');
+--try select all participants id by its names
+--3-3-2
+drop table if exists winners, participants;
+create table participants
+(
+    id integer primary key,
+    participant varchar(100)
+);
+create table winners
+(
+    id integer primary key,
+    winner varchar(100),
+    winner_id integer,
+    discipline varchar(100),
+    organizer varchar(100),
+
+    foreign key (winner_id) references participants(id)
+);
+
+---аномалия вставки: в результате появился новый организатор
+insert into participants values
+    (1, 'Петров Виктор'),
+    (2, 'Красова Алина'),
+    (3, 'Красноухов Алексей'),
+    (4, 'Кизилов Максим'),
+    (5, 'Киргизов Батыр');
+
+insert into winners values
+    (1, 'Петров Виктор', 1, 'Python', 'Комаров Василий'),
+    (2, 'Красова Алина', 2, 'Нейронные сети', 'Бибкин Александр'),
+    (3, 'Красноухов Алексей', 3, 'Нефтехим', 'Чуркин Александр'),
+    (4, 'Кизилов Максим', 4, 'Python', 'Чудаков Павел'),
+    (5, 'Киргизов Батыр', 5, 'Java', 'Олежин Олег');
+
+---аномалия модификации: данные таблиц participants и winners неконсистентны
+-- update participants set id = 10
+-- where id = 1;
+update participants set participant = 'Колесников Александр'
+where id = 1;
+---аномалия удаления: теряем данные о направлении
+delete from winners where winner = 'Красова Алина';
+
+--3-4
+drop table if exists banks_clients;
+create table banks_clients
+(
+    bank varchar(100),
+    office_num varchar(100),
+    clients varchar(100)
+);
+
+insert into banks_clients values
+    ('Сбер', '900', 'Петров Виктор, Красова Алина, Красноухов Алексей'),
+    ('Тинькофф', '338-400', 'Красноухов Алексей, Киргизов Батыр'),
+    ('Райффайзен', '312-321', 'Петров Виктор, Красноухов Алексей'),
+    ('ВТБ', '12-222', 'Киргизов Батыр, Колесников Александр'),
+    ('Левобережный', '5555', 'Кизилов Максим');
+
+---приведение к 1НФ
+
+delete from banks_clients;
+--для демонстрации следующего приведения:
+alter table banks_clients add column account_number integer;
+alter table banks_clients add column office_street varchar(100);
+alter table banks_clients add column office_housenum integer;
+
+--1НФ:
+insert into banks_clients values
+    ('Сбер', '900','Петров Виктор', 5999, 'Пушкина', 9),
+    ('Сбер', '900', 'Красова Алина', 6000, 'Пушкина', 9),
+    ('Сбер', '900-3', 'Красноухов Алексей', 56, 'Вавилова', 12),
+    ('Тинькофф', '338-400-1','Красноухов Алексей', 600, 'Ленина', 12),
+    ('Тинькофф', '338-400-2','Киргизов Батыр', 700, 'Жукова', 66),
+    ('Райффайзен', '312-321','Петров Виктор', 800, 'Ильича', 17),
+    ('Райффайзен', '312-321','Красноухов Алексей', 790, 'Ильича', 17),
+    ('ВТБ', '12-222', 'Киргизов Батыр', 900, 'Высоцкого', 45),
+    ('ВТБ', '12-222', 'Колесников Александр', 1000, 'Высоцкого', 45),
+    ('Левобережный', '5555', 'Кизилов Максим', 400, 'Троцкого', 10);
+
+--приведение к 2НФ: зависимость номера счета от клиента
+
+drop table if exists client_office_account, office_bank_address;
+
+create table client_office_account as (
+    select clients, office_num, account_number from banks_clients);
+
+create table office_bank_address as (
+    select office_num, bank, office_street, office_housenum from banks_clients);
+
+
+--для 3НФ:
+alter table client_office_account add column sum integer;
+---приведение к 3НФ:
+
+create table account_sum as (
+    select account_number, sum from client_office_account );
+alter table client_office_account drop column sum;
+
+---приведение к 4НФ:
+--Пусть есть таблица с данными (bank, address, clients) со множественными зависимостями
+--Разбиваем на 2 таблицы, убирая множественность: (bank, clients), (bank,address)
