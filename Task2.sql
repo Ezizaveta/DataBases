@@ -1,28 +1,28 @@
 ---TASK2
 ---1
 
-select distinct users.firstname, tasks.title, tasks.priority
+select distinct users.Name, tasks.title, tasks.priority
 from users, tasks
 where tasks.title in
     (
     select title
     from tasks
-    where (executor = users.firstname)
+    where (executor = users.Name)
     group by executor, title, priority
     order by priority desc limit 3
     )
 union
-select distinct users.firstname, tasks.title, tasks.priority
+select distinct users.Name, tasks.title, tasks.priority
 from users, tasks
 where tasks.title in
     (
     select title
     from tasks
-    where (executor = users.firstname)
+    where (executor = users.Name)
     group by executor, title, priority
     order by priority asc limit 3
     )
-order by firstname;
+order by Name;
 
 ---2
 select
@@ -30,18 +30,18 @@ select
     concat(count(title),
 	extract (month from start_date),
 	extract(year from start_date),
-	users.firstname)
+	users.Name)
 from users, tasks
-where users.firstname = tasks.author
-group by users.firstname, tasks.start_date;
+where users.Name = tasks.author
+group by users.Name, tasks.start_date;
 
 ---3.1
-SELECT Id,
+SELECT users.Id,
        (sum(tasks.spent_time - tasks.execution_time) + sum(abs(tasks.spent_time - tasks.execution_time)))/2 as "+",
        (sum(tasks.execution_time - tasks.spent_time) + sum(abs(tasks.execution_time - tasks.spent_time)))/2 as "-"
 FROM users, tasks
-WHERE(users.firstname = tasks.executor)
-GROUP BY Id;
+WHERE(users.Name = tasks.executor)
+GROUP BY users.Id;
 
 ---3.2
 
@@ -61,7 +61,7 @@ from users,
         group by tasks.executor
      ) as underwork
     on overwork.executor = underwork.executor
-where underwork.executor = users.firstname
+where underwork.executor = users.Name
 group by underwork."-", overwork."+", users.id;
 
 ---4
@@ -126,14 +126,14 @@ create view executors as
 -- 2.10
 select distinct users.email, tasks.executor
 from users, tasks
-where users.firstname = tasks.executor;
+where users.Name = tasks.executor;
 
-select distinct users.email, users.firstname
+select distinct users.email, users.Name
 from users
-where users.firstname in (select distinct tasks.author from tasks);
+where users.Name in (select distinct tasks.author from tasks);
 
 select tasks.title, tasks.spent_time
 from tasks
-where tasks.executor in (select distinct users.firstname
+where tasks.executor in (select distinct users.Name
 			from users
-			where users.firstname = tasks.executor);
+			where users.Name = tasks.executor);
