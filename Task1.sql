@@ -20,7 +20,7 @@ CREATE TABLE projects
 
 CREATE TABLE tasks
 (
-    id integer,
+    task_id integer,
     Title VARCHAR(30) NOT NULL,
 	Project VARCHAR(30) NOT NULL,
     Priority INTEGER NOT NULL,
@@ -60,7 +60,7 @@ INSERT INTO projects(Name,Start_Date,End_Date) VALUES
 ('Сила нефти',DATE'08/22/2022',DATE'05/31/2023'),
 ('Поддержка',DATE'06/07/2022', NULL);
 
-INSERT INTO tasks(id, Title,Project,Priority,Description,Status,
+INSERT INTO tasks(task_id, Title,Project,Priority,Description,Status,
     Execution_Time,Spent_Time,Author,Executor,Start_Date) VALUES
         (1,'Task1', 'Поддержка', 1, NULL, 'Закрыта', 10, 9, 'Петрова София', NULL, DATE'01/01/2016' ),
         (2, 'Task2', 'РТК', 3, NULL, 'Выполняется', 12, 12, 'Петрова София', 'Касаткин Артём', DATE'01/01/2016'),
